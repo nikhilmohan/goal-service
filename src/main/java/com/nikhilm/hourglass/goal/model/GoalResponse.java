@@ -14,5 +14,5 @@ import java.util.List;
 @Setter
 public class GoalResponse {
     private List<Goal> goals = new ArrayList<>();
-    private Long totalgoals;
+    private Long totalgoals = 0L;
 }
