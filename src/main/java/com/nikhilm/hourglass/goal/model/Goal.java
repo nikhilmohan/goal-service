@@ -22,6 +22,7 @@ public class Goal {
 
     @Id
     private String id;
+    private String userId;
 
     @TextIndexed
     @NonNull

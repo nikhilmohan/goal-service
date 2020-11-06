@@ -9,9 +9,11 @@ import com.nikhilm.hourglass.goal.model.GoalStatus;
 import com.nikhilm.hourglass.goal.services.GoalService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
@@ -45,12 +47,14 @@ public class GoalResource  {
     @GetMapping(value = "/goals", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<GoalResponse> goals(@RequestParam("search") Optional<String> text,
                                     @RequestParam("page") Optional<Integer> page,
-                                    @RequestParam("status") Optional<String> status) {
+                                    @RequestParam("status") Optional<String> status,
+                                    @RequestHeader("user") String user
+                                  ) {
 
         if (isPageInputInvalid(page))  {
             throw new ValidationException("Wrong input!");
         }
-
+        log.info("user " + user);
         List<String> statusFilters = new ArrayList<>();
 
         if (status.isPresent()) {
@@ -97,11 +101,13 @@ public class GoalResource  {
 
 
     @PostMapping(value = "/goal", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Goal>> addGoal(@RequestBody Goal goal)   {
+    public Mono<ResponseEntity<Goal>> addGoal(@RequestBody Goal goal, @RequestHeader("user") String user)   {
         if (goal.getName() == null || goal.getName().trim().isEmpty())  {
             log.info("Bad request error");
             throw new ValidationException("Wrong input!");
         }
+        // inject user
+        goal.setUserId(user);
         return goalService.addGoal(goal)
                 .map(savedGoal -> {
                     return ResponseEntity.created(URI.create("/"+savedGoal.getId()))
@@ -110,13 +116,15 @@ public class GoalResource  {
     }
 
     @PutMapping(value = "/goal", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Goal>> updateGoalStatus(@RequestBody Goal goal)  {
+    public Mono<ResponseEntity<Goal>> updateGoalStatus(@RequestBody Goal goal, @RequestHeader("user") String user)  {
         log.info("Goal " + goal);
 
         if (goal.getName() == null || goal.getName().trim().isEmpty())  {
             log.error("Bad request error");
             throw new ValidationException("Wrong input!");
         }
+        // inject user
+        goal.setUserId(user);
         return goalService.updateGoal(goal)
                 .map(savedGoal -> {
                     log.info("Updated Goal for response" + savedGoal);

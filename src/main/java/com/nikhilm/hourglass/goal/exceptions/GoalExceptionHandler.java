@@ -19,6 +19,10 @@ public class GoalExceptionHandler  {
     public ResponseEntity<ApiError> handleTypeMismatchException(Exception e) {
         return ResponseEntity.badRequest().body(new ApiError("400", "Wrong input!"));
     }
+    @ExceptionHandler(GoalException.class)
+    public ResponseEntity<ApiError> handleGoalException(GoalException e) {
+        return ResponseEntity.badRequest().body(new ApiError(String.valueOf(e.getStatus()), e.getMessage()));
+    }
 
 
 

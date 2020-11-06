@@ -14,6 +14,13 @@ spring:
       host: localhost
       port: 27017
       database: hourglass
+  cloud.stream:
+    bindings:
+      output-goals:
+        destination: goals
+    kafka.binder:
+      brokers: 127.0.0.1
+      defaultBrokerPort: 9092
 ---
 spring:
   profile: prod
@@ -22,3 +29,10 @@ spring:
       host: localhost
       port: 27018
       database: hourglass
+  cloud.stream:
+    bindings:
+      output-goals:
+        destination: goals
+    kafka.binder:
+      brokers: 127.0.0.1
+      defaultBrokerPort: 9092
