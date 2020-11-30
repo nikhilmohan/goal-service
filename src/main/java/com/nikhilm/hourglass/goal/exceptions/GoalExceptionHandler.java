@@ -21,7 +21,7 @@ public class GoalExceptionHandler  {
     }
     @ExceptionHandler(GoalException.class)
     public ResponseEntity<ApiError> handleGoalException(GoalException e) {
-        return ResponseEntity.badRequest().body(new ApiError(String.valueOf(e.getStatus()), e.getMessage()));
+        return ResponseEntity.status(e.getStatus()).body(new ApiError(String.valueOf(e.getStatus()), e.getMessage()));
     }
 
 

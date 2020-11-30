@@ -9,6 +9,8 @@ import com.nikhilm.hourglass.goal.repositories.GoalRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreaker;
+import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.Output;
 import org.springframework.data.domain.Page;
@@ -19,6 +21,7 @@ import org.springframework.data.mongodb.core.query.TextCriteria;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -34,26 +37,32 @@ import static com.nikhilm.hourglass.goal.model.Event.Type.*;
 @EnableBinding(GoalService.MessageSources.class)
 public class GoalService {
 
-    @Autowired
     GoalRepository goalRepository;
 
     @Autowired
     private MessageSources messageSources;
 
-    @Value("${pageSize}")
     private int pageSize;
 
-    private boolean filterByStatus(Goal goal, List<String> inclusions)   {
-        if (inclusions.isEmpty())   {
-            return true;
-        }
-        return inclusions.contains(goal.getStatus().getValue());
-
+    @Value("${pageSize}")
+    public void setPageSize(int pageSize) {
+        this.pageSize = pageSize;
     }
 
-    public Mono<GoalResponse> fetchGoals(Optional<String> text, Optional<Integer> page, List<String> statusFilter ) {
+//    private boolean filterByStatus(Goal goal, List<String> inclusions)   {
+//        if (inclusions.isEmpty())   {
+//            return true;
+//        }
+//        return inclusions.contains(goal.getStatus().getValue());
+//
+//    }
+
+    public Mono<GoalResponse> fetchGoals(Optional<String> text, Optional<Integer> page,
+                                         List<String> statusFilter, String user ) {
 
         log.info("Filters " + statusFilter);
+        log.info("User " + user);
+        log.info("Page size " + pageSize);
 
         GoalResponse response = new GoalResponse();
 
@@ -65,17 +74,16 @@ public class GoalService {
 
         if (text.isPresent()) {
             TextCriteria criteria = TextCriteria.forDefaultLanguage().matchingAny(text.get());
-            goalFlux = goalRepository.findAllBy(criteria).filter(goal -> statusFilter.isEmpty() ||
-                    statusFilter.contains(goal.getStatus().getValue()))
+            goalFlux = goalRepository.findAllBy(criteria)
+                    .filter(goal -> (statusFilter.isEmpty() || statusFilter.contains(goal.getStatus().getValue()))
+                            && goal.getUserId().equalsIgnoreCase(user))
                     .skip(offset).take(pageSize);
 
         }
         else {
-            goalFlux = goalRepository.findAll().filter(goal -> statusFilter.isEmpty() ||
-                    statusFilter.contains(goal.getStatus().getValue()))
-            .skip(offset).take(pageSize);
-
-
+            goalFlux = goalRepository.findAllByUserId(user)
+                    .filter(goal -> statusFilter.isEmpty() || statusFilter.contains(goal.getStatus().getValue()))
+                    .skip(offset).take(pageSize);
         }
 
         return goalFlux.reduce(response, (goalResponse, goal)-> {
@@ -86,7 +94,9 @@ public class GoalService {
 
     public Mono<Goal> addGoal(Goal goal) {
 
-        return goalRepository.findByName(goal.getName())
+        log.info("Adding goal " + goal);
+
+        return goalRepository.findByNameAndUserId(goal.getName(), goal.getUserId())
                 .flatMap(goal1 -> Mono.error(new GoalException(409, "Conflict!")))
                 .switchIfEmpty(Mono.defer(()-> {
                         return goalRepository.save(goal)
@@ -100,13 +110,14 @@ public class GoalService {
 
     }
 
-    public Mono<Long> findTotalGoalCount() {
 
-        return goalRepository.findTotalCount();
+    public Mono<Long> findTotalGoalCount(String user) {
+
+        return goalRepository.findTotalCount(user);
     }
 
     public Mono<Goal> updateGoal(Goal goal) {
-        return goalRepository.findByName(goal.getName())
+        return goalRepository.findByNameAndUserId(goal.getName(), goal.getUserId())
                 .map(currentGoal -> {
                     log.info("Current Goal " + currentGoal);
                     Goal updatedGoal = new Goal();
@@ -128,6 +139,7 @@ public class GoalService {
                 .flatMap(goalToSave -> {
                     return goalRepository.save(goalToSave);
                 })
+                .onErrorMap(throwable -> new GoalException(500, "Internal server error!"))
                 .map(savedGoal -> {
                     Event.Type eventType = GOAL_COMPLETED;
                     switch (savedGoal.getStatus())  {

@@ -5,7 +5,7 @@ spring:
     active: dev
 
 
-pageSize: 2
+pageSize: 5
 ---
 spring:
   profiles: dev

@@ -14,9 +14,10 @@ public interface GoalRepository extends ReactiveMongoRepository<Goal, String> {
     // Paginate over a full-text search result
     Flux<Goal> findAllBy(TextCriteria criteria);
 
-    @Query(value = "{}", count = true)
-    public Mono<Long> findTotalCount();
+    @Query(value = "{userId : ?0}", count = true)
+    public Mono<Long> findTotalCount(String user);
 
 
-    Mono<Goal> findByName(String name);
+    Mono<Goal> findByNameAndUserId(String name, String userId);
+    Flux<Goal> findAllByUserId(String userId);
 }
