@@ -67,7 +67,7 @@ public class GoalResource  {
         if (isPageInputInvalid(page))  {
             throw new ValidationException("Wrong input!");
         }
-        log.info("user: " + user);
+        log.info("user : " + user);
         List<String> statusFilters = new ArrayList<>();
 
         if (status.isPresent()) {
