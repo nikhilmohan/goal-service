@@ -1,7 +1,5 @@
 package com.nikhilm.hourglass.goal.resources;
 
-import ch.qos.logback.classic.spi.IThrowableProxy;
-import com.nikhilm.hourglass.goal.exceptions.ApiError;
 import com.nikhilm.hourglass.goal.exceptions.GoalException;
 import com.nikhilm.hourglass.goal.exceptions.ValidationException;
 import com.nikhilm.hourglass.goal.model.Goal;
@@ -10,17 +8,11 @@ import com.nikhilm.hourglass.goal.model.GoalStatus;
 import com.nikhilm.hourglass.goal.services.GoalService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties;
-import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
@@ -31,6 +23,8 @@ import java.util.*;
 public class GoalResource  {
 
 
+    public static final String WRONG_INPUT = "Wrong input!";
+    public static final String SERVER_ERROR = "Internal server error!";
     @Autowired
     GoalService goalService;
 
@@ -65,7 +59,7 @@ public class GoalResource  {
                                   ) {
 
         if (isPageInputInvalid(page))  {
-            throw new ValidationException("Wrong input!");
+            throw new ValidationException(WRONG_INPUT);
         }
         log.info("user : " + user);
         List<String> statusFilters = new ArrayList<>();
@@ -74,13 +68,13 @@ public class GoalResource  {
             statusFilters = parseStatusFilter(status.get(), ",");
         }
         if (isStatusInvalid(statusFilters)) {
-            throw new ValidationException(("Wrong input!!"));
+            throw new ValidationException((WRONG_INPUT));
         }
 
         return Mono.zip(rcb.run(goalService.fetchGoals(text, page, statusFilters, user),
-                    throwable -> Mono.error(new GoalException(500, "Internal server error!"))),
+                    throwable -> Mono.error(new GoalException(500, SERVER_ERROR))),
                 rcb.run(goalService.findTotalGoalCount(user),
-                        throwable -> Mono.error(new GoalException(500, "Internal server error!"))),
+                        throwable -> Mono.error(new GoalException(500, SERVER_ERROR))),
                 ((goalResponse, aLong) -> {
                     GoalResponse response = new GoalResponse();
                     log.info("Total count " + aLong);
@@ -95,17 +89,9 @@ public class GoalResource  {
 
 
     private boolean isPageInputInvalid(Optional<Integer> page) {
-        if (page.isPresent() && page.get() < 1) {
-            return true;
-        }
-
-        return false;
-
+        return (page.isPresent() && page.get() < 1);
     }
     private boolean isStatusInvalid(List<String> inputs) {
-
-
-        Arrays.asList(GoalStatus.values().toString().toUpperCase()).forEach(System.out::println);
         return inputs.stream()
                 .anyMatch(s -> {
                     for (GoalStatus gs : GoalStatus.values()) {
@@ -122,9 +108,9 @@ public class GoalResource  {
     public Mono<ResponseEntity<Goal>> addGoal(@RequestBody Goal goal, @RequestHeader("user") String user)   {
 
         log.info("Goal name is " + goal.getName());
-        if (goal.getName() == null || goal.getName().trim().isEmpty())  {
+        if (goal.getName().trim().isEmpty())  {
             log.info("Bad request error");
-            throw new ValidationException("Wrong input!");
+            throw new ValidationException(WRONG_INPUT);
         }
         // inject user
         goal.setUserId(user);
@@ -133,25 +119,26 @@ public class GoalResource  {
 
                 return Mono.error(throwable);
             }
-            return Mono.error(new GoalException(500, "Internal server error!"));
+            return Mono.error(new GoalException(500, SERVER_ERROR));
         })
-        .map(savedGoal -> {
-            return ResponseEntity.created(URI.create("/"+savedGoal.getId()))
-                .body(savedGoal);
-        }).switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+        .map(savedGoal ->
+             ResponseEntity.created(URI.create("/"+savedGoal.getId()))
+                .body(savedGoal)
+        ).switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
     }
 
     @PutMapping(value = "/goal", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<Goal>> updateGoalStatus(@RequestBody Goal goal, @RequestHeader("user") String user)  {
         log.info("Goal " + goal);
 
-        if (goal.getName() == null || goal.getName().trim().isEmpty())  {
+        if (goal.getName().trim().isEmpty())  {
             log.error("Bad request error");
-            throw new ValidationException("Wrong input!");
+            throw new ValidationException(WRONG_INPUT);
         }
         // inject user
         goal.setUserId(user);
-        return rcb.run(goalService.updateGoal(goal), throwable -> Mono.error(new GoalException(500, "Internal server error!")))
+        return rcb.run(goalService.updateGoal(goal), throwable ->
+                Mono.error(new GoalException(500, SERVER_ERROR)))
                 .map(savedGoal -> {
                     log.info("Updated Goal for response" + savedGoal);
                     return ResponseEntity.ok()
