@@ -2,13 +2,12 @@ package com.nikhilm.hourglass.goal.resources;
 
 import com.nikhilm.hourglass.goal.exceptions.ApiError;
 import com.nikhilm.hourglass.goal.exceptions.GoalException;
-import com.nikhilm.hourglass.goal.model.Goal;
-import com.nikhilm.hourglass.goal.model.GoalLevel;
-import com.nikhilm.hourglass.goal.model.GoalResponse;
-import com.nikhilm.hourglass.goal.model.GoalStatus;
+import com.nikhilm.hourglass.goal.model.*;
+import com.nikhilm.hourglass.goal.services.GoalMapper;
 import com.nikhilm.hourglass.goal.services.GoalService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.Mapper;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
@@ -34,6 +33,9 @@ class GoalResourceTest {
 
     @MockBean
     GoalService goalService;
+
+    @MockBean
+    GoalMapper goalMapper;
 
     @Test
     public void testGetGoals()  {
@@ -228,6 +230,7 @@ class GoalResourceTest {
         goal.setStatus(GoalStatus.ACTIVE);
         goal.setDueDate(localDate);
 
+        Mockito.when(goalMapper.goalDTOtoGoal(any(GoalDTO.class))).thenReturn(goal);
         Mockito.when(goalService.addGoal(any(Goal.class))).thenReturn(Mono.just(goal));
 
         Goal response =  webTestClient.post().uri("http://localhost:9000/goal")
@@ -271,6 +274,7 @@ class GoalResourceTest {
         goal.setName("first goal");
         goal.setStatus(GoalStatus.ACTIVE);
         goal.setDueDate(localDate);
+        Mockito.when(goalMapper.goalDTOtoGoal(any(GoalDTO.class))).thenReturn(goal);
 
         Mockito.when(goalService.addGoal(any(Goal.class)))
                 .thenReturn(Mono.error(new GoalException(409, "Conflict!")));
@@ -296,6 +300,7 @@ class GoalResourceTest {
         goal.setName("first goal");
         goal.setStatus(GoalStatus.ACTIVE);
         goal.setDueDate(localDate);
+        Mockito.when(goalMapper.goalDTOtoGoal(any(GoalDTO.class))).thenReturn(goal);
 
         Mockito.when(goalService.addGoal(any(Goal.class)))
                 .thenReturn(Mono.error(new GoalException(500, "Internal server error!")));
@@ -324,6 +329,8 @@ class GoalResourceTest {
     @Test
     public void updateGoalNotExists() {
         Goal goal = new Goal();
+        Mockito.when(goalMapper.goalDTOtoGoal(any(GoalDTO.class))).thenReturn(goal);
+
         Mockito.when(goalService.updateGoal(any(Goal.class)))
                 .thenReturn(Mono.empty());
 
@@ -343,6 +350,10 @@ class GoalResourceTest {
         goal.setName("first goal");
         goal.setStatus(GoalStatus.ACTIVE);
         goal.setDueDate(LocalDate.now().plusDays(10L));
+        Mockito.when(goalMapper.goalDTOtoGoal(any(GoalDTO.class))).thenReturn(goal);
+
+        Mockito.when(goalMapper.goalDTOtoGoal(any(GoalDTO.class))).thenReturn(goal);
+
         Mockito.when(goalService.updateGoal(any(Goal.class))).thenReturn(Mono.just(goal));
 
         webTestClient.put().uri("http://localhost:9000/goal")

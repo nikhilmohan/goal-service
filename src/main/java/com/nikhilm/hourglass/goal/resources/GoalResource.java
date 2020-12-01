@@ -3,8 +3,10 @@ package com.nikhilm.hourglass.goal.resources;
 import com.nikhilm.hourglass.goal.exceptions.GoalException;
 import com.nikhilm.hourglass.goal.exceptions.ValidationException;
 import com.nikhilm.hourglass.goal.model.Goal;
+import com.nikhilm.hourglass.goal.model.GoalDTO;
 import com.nikhilm.hourglass.goal.model.GoalResponse;
 import com.nikhilm.hourglass.goal.model.GoalStatus;
+import com.nikhilm.hourglass.goal.services.GoalMapper;
 import com.nikhilm.hourglass.goal.services.GoalService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +32,9 @@ public class GoalResource  {
 
     @Autowired
     ReactiveCircuitBreakerFactory factory;
+
+    @Autowired
+    GoalMapper goalMapper;
 
     ReactiveCircuitBreaker rcb;
 
@@ -105,7 +110,7 @@ public class GoalResource  {
 
 
     @PostMapping(value = "/goal", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Goal>> addGoal(@RequestBody Goal goal, @RequestHeader("user") String user)   {
+    public Mono<ResponseEntity<Goal>> addGoal(@RequestBody GoalDTO goal, @RequestHeader("user") String user)   {
 
         log.info("Goal name is " + goal.getName());
         if (goal.getName().trim().isEmpty())  {
@@ -114,7 +119,7 @@ public class GoalResource  {
         }
         // inject user
         goal.setUserId(user);
-        return rcb.run(goalService.addGoal(goal), throwable-> {
+        return rcb.run(goalService.addGoal(goalMapper.goalDTOtoGoal(goal)), throwable-> {
             if (throwable.getMessage().contains("Conflict")) {
 
                 return Mono.error(throwable);
@@ -128,7 +133,7 @@ public class GoalResource  {
     }
 
     @PutMapping(value = "/goal", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Goal>> updateGoalStatus(@RequestBody Goal goal, @RequestHeader("user") String user)  {
+    public Mono<ResponseEntity<Goal>> updateGoalStatus(@RequestBody GoalDTO goal, @RequestHeader("user") String user)  {
         log.info("Goal " + goal);
 
         if (goal.getName().trim().isEmpty())  {
@@ -137,7 +142,7 @@ public class GoalResource  {
         }
         // inject user
         goal.setUserId(user);
-        return rcb.run(goalService.updateGoal(goal), throwable ->
+        return rcb.run(goalService.updateGoal(goalMapper.goalDTOtoGoal(goal)), throwable ->
                 Mono.error(new GoalException(500, SERVER_ERROR)))
                 .map(savedGoal -> {
                     log.info("Updated Goal for response" + savedGoal);
