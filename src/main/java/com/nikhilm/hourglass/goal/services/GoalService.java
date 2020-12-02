@@ -37,6 +37,7 @@ import static com.nikhilm.hourglass.goal.model.Event.Type.*;
 @EnableBinding(GoalService.MessageSources.class)
 public class GoalService {
 
+    @Autowired
     GoalRepository goalRepository;
 
     @Autowired
