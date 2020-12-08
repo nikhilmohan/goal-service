@@ -18,9 +18,15 @@ spring:
     bindings:
       output-goals:
         destination: goals
-    kafka.binder:
-      brokers: 127.0.0.1
-      defaultBrokerPort: 9092
+    defaultBinder: rabbit
+    default.contentType: application/json
+
+spring.rabbitmq:
+  host: localhost
+  port: 5672
+  username: guest
+  password: guest
+
 ---
 spring:
   profile: prod
@@ -36,3 +42,8 @@ spring:
     kafka.binder:
       brokers: kafka
       defaultBrokerPort: 9093
+spring.rabbitmq:
+  host: rabbitmq
+  port: 5672
+  username: guest
+  password: guest
