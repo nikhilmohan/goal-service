@@ -75,23 +75,28 @@ public class GoalService {
         if (text.isPresent()) {
             log.info("Text search is given " + text.get());
             TextCriteria criteria = TextCriteria.forDefaultLanguage().matchingAny(text.get());
-            goalFlux = goalRepository.findAllBy(criteria)
+            return goalRepository.findAllBy(criteria)
                     .filter(goal -> (statusFilter.isEmpty() || statusFilter.contains(goal.getStatus().getValue()))
                             && goal.getUserId().equalsIgnoreCase(user))
-                    .take(pageSize);
+                    .take(pageSize)
+            .reduce(response, (goalResponse, goal)-> {
+                log.info("including goal to response " + goal);
+                goalResponse.getGoals().add(goal);
+                return goalResponse;
+            });
+
 
         }
         else {
-            goalFlux = goalRepository.findAllByUserId(user)
+            return goalRepository.findAllByUserId(user)
                     .filter(goal -> statusFilter.isEmpty() || statusFilter.contains(goal.getStatus().getValue()))
-                    .skip(offset).take(pageSize);
+                    .skip(offset).take(pageSize)
+                    .reduce(response, (goalResponse, goal) -> {
+                        log.info("including goal to response " + goal);
+                        goalResponse.getGoals().add(goal);
+                        return goalResponse;
+                    });
         }
-
-        return goalFlux.reduce(response, (goalResponse, goal)-> {
-            log.info("including goal to response " + goal);
-            goalResponse.getGoals().add(goal);
-            return goalResponse;
-        });
     }
 
     public Mono<Goal> addGoal(Goal goal) {

@@ -77,7 +77,9 @@ public class GoalResource  {
         }
 
         return Mono.zip(rcb.run(goalService.fetchGoals(text, page, statusFilters, user),
-                    throwable -> Mono.error(new GoalException(500, SERVER_ERROR))),
+                    throwable -> {
+                        log.error("Failed " + throwable.getMessage());
+                     return Mono.error(new GoalException(500, SERVER_ERROR));}),
                 rcb.run(goalService.findTotalGoalCount(user),
                         throwable -> Mono.error(new GoalException(500, SERVER_ERROR))),
                 ((goalResponse, aLong) -> {
