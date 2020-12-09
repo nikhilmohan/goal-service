@@ -61,7 +61,7 @@ public class GoalService {
     public Mono<GoalResponse> fetchGoals(Optional<String> text, Optional<Integer> page,
                                          List<String> statusFilter, String user ) {
 
-        log.info("Filters " + statusFilter);
+        log.info("Filters " + statusFilter.isEmpty());
         log.info("User " + user);
         log.info("Page size " + pageSize);
 
@@ -72,13 +72,13 @@ public class GoalService {
 
         int offset = page.isEmpty() ? 0 : (page.get() - 1) * pageSize;
 
-
         if (text.isPresent()) {
+            log.info("Text search is given " + text.get());
             TextCriteria criteria = TextCriteria.forDefaultLanguage().matchingAny(text.get());
             goalFlux = goalRepository.findAllBy(criteria)
                     .filter(goal -> (statusFilter.isEmpty() || statusFilter.contains(goal.getStatus().getValue()))
                             && goal.getUserId().equalsIgnoreCase(user))
-                    .skip(offset).take(pageSize);
+                    .take(pageSize);
 
         }
         else {
@@ -88,6 +88,7 @@ public class GoalService {
         }
 
         return goalFlux.reduce(response, (goalResponse, goal)-> {
+            log.info("including goal to response " + goal);
             goalResponse.getGoals().add(goal);
             return goalResponse;
         });
