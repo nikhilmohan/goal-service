@@ -1,5 +1,6 @@
 package com.nikhilm.hourglass.goal.resources;
 
+import com.nikhilm.hourglass.goal.exceptions.ApiError;
 import com.nikhilm.hourglass.goal.exceptions.GoalException;
 import com.nikhilm.hourglass.goal.exceptions.ValidationException;
 import com.nikhilm.hourglass.goal.model.Goal;
@@ -8,6 +9,13 @@ import com.nikhilm.hourglass.goal.model.GoalResponse;
 import com.nikhilm.hourglass.goal.model.GoalStatus;
 import com.nikhilm.hourglass.goal.services.GoalMapper;
 import com.nikhilm.hourglass.goal.services.GoalService;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreaker;
@@ -22,6 +30,13 @@ import java.util.*;
 
 @Slf4j
 @RestController
+@OpenAPIDefinition(
+        info = @Info(
+                title = "Goal service API",
+                version = "1.0",
+                description = "API for managing goals in hourglass application"
+               )
+)
 public class GoalResource  {
 
 
@@ -56,6 +71,17 @@ public class GoalResource  {
 
     }
 
+    @Operation(summary = "List all goals for the user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Found the goals",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = GoalResponse.class)) }),
+            @ApiResponse(responseCode = "400", description = "Invalid input",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ApiError.class)) }),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ApiError.class)) })})
     @GetMapping(value = "/goals", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<GoalResponse> goals(@RequestParam("search") Optional<String> text,
                                     @RequestParam("page") Optional<Integer> page,
@@ -109,8 +135,20 @@ public class GoalResource  {
                     return true;
                 });
     }
-
-
+    @Operation(summary = "Add goal for the user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Created the goal",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = Goal.class)) }),
+            @ApiResponse(responseCode = "400", description = "Invalid input",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ApiError.class)) }),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ApiError.class)) }),
+            @ApiResponse(responseCode = "409", description = "Goal already exists",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ApiError.class)) })})
     @PostMapping(value = "/goal", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<Goal>> addGoal(@RequestBody GoalDTO goal, @RequestHeader("user") String user)   {
 
@@ -134,6 +172,20 @@ public class GoalResource  {
         ).switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
     }
 
+    @Operation(summary = "Update goal status")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Updated the goal",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = GoalResponse.class)) }),
+            @ApiResponse(responseCode = "400", description = "Invalid input",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ApiError.class)) }),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ApiError.class)) }),
+            @ApiResponse(responseCode = "404", description = "Goal not found",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ApiError.class)) })})
     @PutMapping(value = "/goal", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<Goal>> updateGoalStatus(@RequestBody GoalDTO goal, @RequestHeader("user") String user)  {
         log.info("Goal " + goal);
