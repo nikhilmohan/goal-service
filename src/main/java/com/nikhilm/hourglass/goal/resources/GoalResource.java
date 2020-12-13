@@ -11,6 +11,7 @@ import com.nikhilm.hourglass.goal.services.GoalMapper;
 import com.nikhilm.hourglass.goal.services.GoalService;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -34,7 +35,8 @@ import java.util.*;
         info = @Info(
                 title = "Goal service API",
                 version = "1.0",
-                description = "API for managing goals in hourglass application"
+                description = "API for managing goals in hourglass application",
+                contact = @Contact(name = "Nikhil Mohan", email = "nikmohan81@gmail.com")
                )
 )
 public class GoalResource  {
