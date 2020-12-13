@@ -1,3 +1,5 @@
-[![CircleCI](https://circleci.com/gh/circleci/circleci-docs.svg?style=svg)](https://circleci.com/gh/circleci/goal-service)
+[![nikhilmohan](https://circleci.com/gh/nikhilmohan/goal-service.svg?style=svg)](https://app.circleci.com/pipelines/github/nikhilmohan/goal-service)
+
+
 # goal-service
 Goal microservice for managing goals for hourglass app
